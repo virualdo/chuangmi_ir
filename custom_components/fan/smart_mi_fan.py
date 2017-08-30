@@ -7,12 +7,17 @@ https://home-assistant.io/components/demo/
 import logging
 import random
 
-from homeassistant.components.fan import (SPEED_OFF, FanEntity, SUPPORT_SET_SPEED,
+from homeassistant.components.fan import (SPEED_OFF, FanEntity,
+                                          SUPPORT_SET_SPEED,
                                           SUPPORT_OSCILLATE, SUPPORT_DIRECTION,
-                                          ATTR_SPEED, ATTR_SPEED_LIST, ATTR_OSCILLATING, ATTR_DIRECTION)
+                                          ATTR_SPEED, ATTR_SPEED_LIST,
+                                          ATTR_OSCILLATING, ATTR_DIRECTION, )
 from homeassistant.const import CONF_NAME, CONF_HOST, CONF_TOKEN
 
-REQUIREMENTS = ['python-miio==0.0.8']
+# REQUIREMENTS = ['python-mirobo']
+REQUIREMENTS = ['https://github.com/rytilahti/python-mirobo/archive/'
+                '168f5c0ff381b3b02cedd0917597195b3c521a20.zip#'
+                'python-mirobo']
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -63,8 +68,7 @@ FAN_PROP_TO_ATTR = {
     'fan_led_b': 'led',
 }  # type: dict
 
-#REQUIREMENTS = ['https://github.com/SchumyHao/python-mirobo/archive/master.zip'
-#                '#python-mirobo']
+
 # pylint: disable=unused-argument
 def setup_platform(hass, config, add_devices_callback, discovery_info=None):
     """Set up the smart mi fan platform."""
@@ -76,55 +80,71 @@ def setup_platform(hass, config, add_devices_callback, discovery_info=None):
         SmartMiFan(hass, name, host, token),
     ])
 
+
 class FanStatus:
     """Container for status reports from the fan."""
+
     def __init__(self, data):
-        #['temp_dec', 'humidity', 'angle', 'speed', 'poweroff_time', 'power', 'ac_power', 'battery', 'angle_enable', 'speed_level', 'natural_level', 'child_lock', 'buzzer', 'led_b']
-        #[232, 46, 30, 298, 0, 'on', 'off', 98, 'off', 1, 0, 'off', 'on', 1]
+        # ['temp_dec', 'humidity', 'angle', 'speed', 'poweroff_time', 'power', 'ac_power', 'battery', 'angle_enable', 'speed_level', 'natural_level', 'child_lock', 'buzzer', 'led_b']
+        # [232, 46, 30, 298, 0, 'on', 'off', 98, 'off', 1, 0, 'off', 'on', 1]
         self.data = data
 
     @property
     def temp_dec(self):
         return self.data[0]
+
     @property
     def humidity(self):
         return self.data[1]
+
     @property
     def angle(self):
         return self.data[2]
+
     @property
     def speed(self):
         return self.data[3]
+
     @property
     def poweroff_time(self):
         return self.data[4]
+
     @property
     def power(self):
         return self.data[5]
+
     @property
     def ac_power(self):
         return self.data[6]
+
     @property
     def battery(self):
         return self.data[7]
+
     @property
     def angle_enable(self):
         return self.data[8]
+
     @property
     def speed_level(self):
         return self.data[9]
+
     @property
     def natural_level(self):
         return self.data[10]
+
     @property
     def child_lock(self):
         return self.data[11]
+
     @property
     def buzzer(self):
         return self.data[12]
+
     @property
     def led_b(self):
         return self.data[13]
+
 
 class SmartMiFan(FanEntity):
     """A smart mi fan component."""
@@ -244,16 +264,19 @@ class SmartMiFan(FanEntity):
 
     @property
     def fan(self):
-        import miio
+        from mirobo import Device
         if not self._fan:
-            _LOGGER.info("initializing with host %s token %s" % (self.host, self.token))
-            self._fan = miio.device(self.host, self.token)
+            _LOGGER.info("Initializing with host %s (token %s...)",
+                         self.host, self.token[:5])
+
+            self._fan = Device(self.host, self.token)
         return self._fan
 
     @property
     def fan_temp_dec(self) -> int:
         """fan measured temprature."""
-        return self._state_attrs['temp_dec']/10
+        if self._state_attrs['temp_dec'] is not None:
+            return self._state_attrs['temp_dec'] / 10
 
     @property
     def fan_humidity(self) -> int:
@@ -336,12 +359,14 @@ class SmartMiFan(FanEntity):
         else:
             if (self.oscillating):
                 if (speed in FAN_SPEED):
-                    self.fan_set_natural_level(random.choice(FAN_NATURAL_SPEED[speed]))
+                    self.fan_set_natural_level(
+                        random.choice(FAN_NATURAL_SPEED[speed]))
                 else:
                     self.fan_set_natural_level(int(speed))
             else:
                 if (speed in FAN_SPEED):
-                    self.fan_set_speed_level(random.choice(FAN_DIRECT_SPEED[speed]))
+                    self.fan_set_speed_level(
+                        random.choice(FAN_DIRECT_SPEED[speed]))
                 else:
                     self.fan_set_speed_level(int(speed))
 
@@ -356,13 +381,12 @@ class SmartMiFan(FanEntity):
         elif (direction in ["0"]):
             self.fan_set_angle_enable("off")
 
-
     def oscillate(self, oscillating: bool) -> None:
         """Set oscillation."""
         self.oscillating = oscillating
         self.set_speed(self._speed)
 
-    def turn_on(self, speed: str=None) -> None:
+    def turn_on(self, speed: str = None) -> None:
         """Turn on the entity."""
         if (speed is None):
             self.fan_set_power("on")
@@ -376,8 +400,11 @@ class SmartMiFan(FanEntity):
         self._is_on = False
 
     def fan_get_prop(self):
-        prop = self.fan.send("get_prop", ["temp_dec","humidity","angle","speed","poweroff_time","power","ac_power","battery","angle_enable","speed_level","natural_level","child_lock","buzzer","led_b"])
-        _LOGGER.debug(prop)
+        prop = self.fan.send("get_prop", [
+            "temp_dec", "humidity", "angle", "speed", "poweroff_time", "power",
+            "ac_power", "battery", "angle_enable", "speed_level",
+            "natural_level", "child_lock", "buzzer", "led_b"])
+
         self._state = FanStatus(prop)
         attr = {'temp_dec': self._state.temp_dec,
                 'humidity': self._state.humidity,
