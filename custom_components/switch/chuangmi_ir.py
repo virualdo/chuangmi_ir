@@ -8,6 +8,7 @@ from datetime import timedelta
 import asyncio
 from random import randint
 import voluptuous as vol
+from socket import timeout
 
 import homeassistant.loader as loader
 from homeassistant.components.switch import (SwitchDevice, PLATFORM_SCHEMA)
@@ -18,7 +19,10 @@ from homeassistant.const import (CONF_SWITCHES,
 import homeassistant.helpers.config_validation as cv
 from homeassistant.util.dt import utcnow
 
-REQUIREMENTS = ['python-miio==0.0.8']
+# REQUIREMENTS = ['python-mirobo']
+REQUIREMENTS = ['https://github.com/rytilahti/python-mirobo/archive/'
+                '168f5c0ff381b3b02cedd0917597195b3c521a20.zip#'
+                'python-mirobo']
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,16 +52,15 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 # pylint: disable=unused-argument
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up the smart mi fan platform."""
-    import miio
+    from mirobo import Device
     host = config.get(CONF_HOST)
-    name = config.get(CONF_NAME)
     token = config.get(CONF_TOKEN)
     devices = config.get(CONF_SWITCHES, {})
     persistent_notification = loader.get_component('persistent_notification')
 
     @asyncio.coroutine
     def _learn_command(call):
-        ir_remote = miio.device(host, token)
+        ir_remote = Device(host, token)
         if not ir_remote:
             _LOGGER.error("Failed to connect to device.")
             return
@@ -73,20 +76,21 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
             _LOGGER.error(type(res["code"]))
             _LOGGER.error(res["code"])
             if res["code"]:
-                log_msg = 'Recieved packet is: %s' % res["code"]
+                log_msg = 'Captured infrared command: %s' % res["code"]
                 _LOGGER.info(log_msg)
                 persistent_notification.async_create(hass, log_msg,
                                                      title='Chuangmi switch')
                 return
             yield from asyncio.sleep(1, loop=hass.loop)
-        _LOGGER.error('Did not received any signal.')
-        persistent_notification.async_create(hass,
-                                             "Did not received any signal",
+
+        log_msg = 'No infrared command captured.'
+        _LOGGER.error(log_msg)
+        persistent_notification.async_create(hass, log_msg,
                                              title='Chuangmi switch')
 
     @asyncio.coroutine
     def _send_packet(call):
-        ir_remote = miio.device(host, token)
+        ir_remote = Device(host, token)
         if not ir_remote:
             _LOGGER.error("Failed to connect to device.")
             return
@@ -95,23 +99,26 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         for packet in packets:
             for retry in range(DEFAULT_RETRY):
                 try:
-                    ir_remote.send("miIO.ir_play", {'freq':38400, 'code': str(packet)})
+                    ir_remote.send(
+                        "miIO.ir_play", {'freq':38400, 'code': str(packet)})
                     break
-                except (socket.timeout, ValueError):
+                except (timeout, ValueError):
                     _LOGGER.error("Failed to send packet to device.")
 
-    ir_remote = miio.device(host, token)
+    ir_remote = Device(host, token)
     if not ir_remote:
         _LOGGER.error("Failed to connect to device.")
 
-    hass.services.register(DOMAIN, SERVICE_LEARN + '_' +
-                            host.replace('.', '_'), _learn_command)
-    hass.services.register(DOMAIN, SERVICE_SEND + '_' +
-                            host.replace('.', '_'), _send_packet)
+    hass.services.register(
+        DOMAIN, SERVICE_LEARN + '_' + host.replace('.', '_'), _learn_command)
+
+    hass.services.register(
+        DOMAIN, SERVICE_SEND + '_' + host.replace('.', '_'), _send_packet)
+
     switches = []
     for object_id, device_config in devices.items():
         switches.append(
-            ChuangmiIRSwitch(
+            ChuangmiInfraredSwitch(
                 ir_remote,
                 device_config.get(CONF_NAME, object_id),
                 device_config.get(CONF_COMMAND_ON),
@@ -121,8 +128,9 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 
     add_devices(switches)
 
-class ChuangmiIRSwitch(SwitchDevice):
-    """Representation of an Chuangmi switch."""
+
+class ChuangmiInfraredSwitch(SwitchDevice):
+    """Representation of an Chuangmi IR switch."""
 
     def __init__(self, device, name, command_on, command_off):
         """Initialize the switch."""
@@ -170,8 +178,9 @@ class ChuangmiIRSwitch(SwitchDevice):
             _LOGGER.debug("Empty packet.")
             return True
         try:
-            self._device.send("miIO.ir_play", {'freq':38400, 'code': str(packet)})
-        except (socket.timeout, ValueError) as error:
+            self._device.send(
+                "miIO.ir_play", {'freq':38400, 'code': str(packet)})
+        except (timeout, ValueError) as error:
             _LOGGER.error(error)
             return False
         return True
