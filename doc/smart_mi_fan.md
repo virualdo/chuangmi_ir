@@ -1,15 +1,15 @@
 ### Smart Mi fan
 
-- Copy custom_components/fan/smart_mi_fan.py to your local HASS configuration folder.
-- Install *python-miio* lib. ```pip3 install python-miio```.
-- Make sure your fan is powered on and connected to the same local network with your PC.
-- Get your fan's IP addr in MiJia app. Run ```miio discover``` to get fans token. 
+- Copy custom_components/fan/smart_mi_fan.py to your home assistant configuration folder.
+- Make sure your fan is powered on and connected to the same local network as your home assistant instance.
+- Get your fan's IP address from the MiHome App or your Router. Run ```mirobo discover``` to get fans token.
+- You can also follow the instructions on [Retrieving the Access Token](https://home-assistant.io/components/xiaomi/#retrieving-the-access-token) to extract the API token from your MiHome App.
 
 ```
 INFO:miio.miio:  IP 192.168.1.154: 701 - token: b'xxxxxxxxxxxxxxxxxxxxx'
 ```
 
-- Config HASS
+- To add the Smart Mi Fan to your installation, add the following to your `configuration.yaml` file:
 
 ```
 fan:
@@ -19,8 +19,9 @@ fan:
     token: !secret fan_key
 ```
 
-- Addition usage. You can create some virtual devices to control fan's speed, oscillation, natural wind mode.  
-  Add this example config to your HASS configuation.yaml
+#### Advanced setup
+
+You can create some virtual devices to control fan's speed, oscillation, natural wind mode. Add the following example to your `configuation.yaml` file:
 
 ```
 group:
@@ -75,7 +76,7 @@ switch:
             oscillating: false
 ```
 
-  Add this automation to your HASS sutomations.yaml
+Add this `automation` to your `automations.yaml` file:
 
 ```
 - id: smart_mi_fan_speed_slider_control_fan

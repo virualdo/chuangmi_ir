@@ -14,10 +14,7 @@ from homeassistant.components.fan import (SPEED_OFF, FanEntity,
                                           ATTR_OSCILLATING, ATTR_DIRECTION, )
 from homeassistant.const import CONF_NAME, CONF_HOST, CONF_TOKEN
 
-# REQUIREMENTS = ['python-mirobo']
-REQUIREMENTS = ['https://github.com/rytilahti/python-mirobo/archive/'
-                '168f5c0ff381b3b02cedd0917597195b3c521a20.zip#'
-                'python-mirobo']
+REQUIREMENTS = ['python-mirobo']
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,7 +49,7 @@ FAN_PROP_TO_ATTR = {
     'speed_num': 'speed_num',
     'oscillating': ATTR_OSCILLATING,
     'direction': ATTR_DIRECTION,
-    'fan_temp_dec': 'temprature',
+    'fan_temp_dec': 'temperature',
     'fan_humidity': 'humidity',
     'fan_angle': 'angle',
     'fan_speed': 'fan_speed',
@@ -85,7 +82,10 @@ class FanStatus:
     """Container for status reports from the fan."""
 
     def __init__(self, data):
-        # ['temp_dec', 'humidity', 'angle', 'speed', 'poweroff_time', 'power', 'ac_power', 'battery', 'angle_enable', 'speed_level', 'natural_level', 'child_lock', 'buzzer', 'led_b']
+        # ['temp_dec', 'humidity', 'angle', 'speed', 'poweroff_time', 'power',
+        # 'ac_power', 'battery', 'angle_enable', 'speed_level',
+        # 'natural_level', 'child_lock', 'buzzer', 'led_b']
+        #
         # [232, 46, 30, 298, 0, 'on', 'off', 98, 'off', 1, 0, 'off', 'on', 1]
         self.data = data
 
@@ -241,8 +241,6 @@ class SmartMiFan(FanEntity):
         else:
             return 0
 
-        return self._speed
-
     @property
     def current_direction(self) -> str:
         """Fan direction."""
@@ -273,14 +271,14 @@ class SmartMiFan(FanEntity):
         return self._fan
 
     @property
-    def fan_temp_dec(self) -> int:
-        """fan measured temprature."""
+    def fan_temperature(self) -> float:
+        """Fan measured temperature."""
         if self._state_attrs['temp_dec'] is not None:
             return self._state_attrs['temp_dec'] / 10
 
     @property
     def fan_humidity(self) -> int:
-        """fan measured humidity."""
+        """Fan measured humidity."""
         return self._state_attrs['humidity']
 
     @property

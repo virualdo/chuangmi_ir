@@ -19,10 +19,7 @@ from homeassistant.const import (CONF_SWITCHES,
 import homeassistant.helpers.config_validation as cv
 from homeassistant.util.dt import utcnow
 
-# REQUIREMENTS = ['python-mirobo']
-REQUIREMENTS = ['https://github.com/rytilahti/python-mirobo/archive/'
-                '168f5c0ff381b3b02cedd0917597195b3c521a20.zip#'
-                'python-mirobo']
+REQUIREMENTS = ['python-mirobo']
 
 _LOGGER = logging.getLogger(__name__)
 
