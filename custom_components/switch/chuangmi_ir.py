@@ -15,7 +15,7 @@ from homeassistant.components.switch import (SwitchDevice, PLATFORM_SCHEMA)
 from homeassistant.const import (CONF_SWITCHES,
                                  CONF_COMMAND_OFF, CONF_COMMAND_ON,
                                  CONF_TIMEOUT, CONF_HOST, CONF_TOKEN,
-                                 CONF_TYPE, CONF_NAME)
+                                 CONF_TYPE, CONF_NAME, )
 import homeassistant.helpers.config_validation as cv
 from homeassistant.util.dt import utcnow
 
@@ -46,6 +46,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_TIMEOUT, default=DEFAULT_TIMEOUT): cv.positive_int
 })
 
+
 # pylint: disable=unused-argument
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up the smart mi fan platform."""
@@ -62,7 +63,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
             _LOGGER.error("Failed to connect to device.")
             return
 
-        key = randint(1,1000000)
+        key = randint(1, 1000000)
 
         ir_remote.send("miIO.ir_learn", {'key': str(key)})
 
@@ -97,7 +98,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
             for retry in range(DEFAULT_RETRY):
                 try:
                     ir_remote.send(
-                        "miIO.ir_play", {'freq':38400, 'code': str(packet)})
+                        "miIO.ir_play", {'freq': 38400, 'code': str(packet)})
                     break
                 except (timeout, ValueError):
                     _LOGGER.error("Failed to send packet to device.")
@@ -176,7 +177,7 @@ class ChuangmiInfraredSwitch(SwitchDevice):
             return True
         try:
             self._device.send(
-                "miIO.ir_play", {'freq':38400, 'code': str(packet)})
+                "miIO.ir_play", {'freq': 38400, 'code': str(packet)})
         except (timeout, ValueError) as error:
             _LOGGER.error(error)
             return False
