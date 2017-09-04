@@ -180,7 +180,7 @@ class ChuangMiInfraredSwitch(SwitchDevice):
         """Send packet to device."""
 
         packet = str(packet)
-        if packet:
+        if not packet:
             _LOGGER.debug("Empty packet skipped.")
             return True
         try:
